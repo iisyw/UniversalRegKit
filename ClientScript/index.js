@@ -226,7 +226,7 @@
     }
 
     // UI 构建
-    let mainContainer, contentPanel, settingsPanel, historyPanel, emailPanel, titleEl;
+    let mainContainer, contentPanel, settingsPanel, historyPanel, emailPanel, titleEl, panelAnimation;
 
     function updateUI() {
         if (!mainContainer) return;
@@ -260,7 +260,7 @@
 
         mainContainer = document.createElement('div');
         mainContainer.id = 'gen-ui-container';
-        mainContainer.style.cssText = 'position:fixed; bottom:20px; right:20px; z-index:2147483647; background:#fff; border:1px solid #ddd; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15); font-family:-apple-system,system-ui,sans-serif; width:260px; padding:12px; user-select:none; display:flex; flex-direction:column; gap:10px;';
+        mainContainer.style.cssText = 'position:fixed; top:140px; right:0; z-index:2147483647; background:#fff; border:1px solid #ddd; border-right:none; border-radius:12px 0 0 12px; box-shadow:0 4px 20px rgba(0,0,0,0.15); font-family:-apple-system,system-ui,sans-serif; width:260px; padding:12px; user-select:none; display:flex; flex-direction:column; gap:10px; overflow:hidden; transform-origin:right top; transition:transform 0.22s ease, opacity 0.18s ease, box-shadow 0.22s ease;';
 
         const header = document.createElement('div');
         header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px;';
@@ -300,8 +300,9 @@
         configBtn.onclick = () => switchPanel(settingsPanel.style.display === 'none' ? settingsPanel : null);
 
         const toggleBtn = document.createElement('button');
-        toggleBtn.innerHTML = '&#8211;';
-        toggleBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:16px;color:#999;padding:0;';
+        toggleBtn.innerHTML = '🛠️';
+        toggleBtn.title = '展开/收起';
+        toggleBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:14px;color:#666;padding:0;line-height:1;';
 
         btnGroup.append(historyBtn, emailConfigBtn, configBtn, toggleBtn);
         header.append(titleEl, btnGroup);
@@ -449,30 +450,127 @@
 
         // 折叠逻辑 (优化居中)
         let isCollapsed = true;
+        let isAnimating = false;
         const applyCollapse = (collapsed) => {
-            contentPanel.style.display = collapsed ? 'none' : 'flex';
             settingsPanel.style.display = historyPanel.style.display = emailPanel.style.display = 'none';
-            titleEl.style.display = collapsed ? 'none' : 'block';
-            historyBtn.style.display = emailConfigBtn.style.display = configBtn.style.display = collapsed ? 'none' : 'block';
-            header.style.borderBottom = collapsed ? 'none' : '1px solid #eee';
-            header.style.paddingBottom = collapsed ? '0' : '8px';
-            header.style.justifyContent = collapsed ? 'center' : 'space-between';
-            toggleBtn.innerHTML = collapsed ? '🛠️' : '&#8211;';
-            mainContainer.style.width = collapsed ? '42px' : '260px';
-            mainContainer.style.height = collapsed ? '42px' : 'auto';
-            mainContainer.style.padding = collapsed ? '0' : '12px';
-            mainContainer.style.borderRadius = collapsed ? '50%' : '12px';
-            mainContainer.style.justifyContent = collapsed ? 'center' : 'initial';
-            mainContainer.style.alignItems = collapsed ? 'center' : 'initial';
-            toggleBtn.style.fontSize = collapsed ? '22px' : '16px';
-            toggleBtn.style.width = collapsed ? '100%' : 'auto';
-            toggleBtn.style.height = collapsed ? '100%' : 'auto';
+
+            if (collapsed) {
+                contentPanel.style.display = 'none';
+                titleEl.style.display = 'none';
+                historyBtn.style.display = 'none';
+                emailConfigBtn.style.display = 'none';
+                configBtn.style.display = 'none';
+                header.style.borderBottom = 'none';
+                header.style.paddingBottom = '0';
+                header.style.justifyContent = 'center';
+                toggleBtn.innerHTML = '🛠️';
+                mainContainer.style.width = '30px';
+                mainContainer.style.padding = '4px';
+                mainContainer.style.justifyContent = 'center';
+                mainContainer.style.alignItems = 'center';
+                mainContainer.style.opacity = '0.98';
+                mainContainer.style.boxShadow = '0 3px 12px rgba(0,0,0,0.12)';
+                toggleBtn.style.fontSize = '14px';
+                toggleBtn.style.width = '18px';
+                toggleBtn.style.height = '18px';
+                toggleBtn.style.display = 'flex';
+                toggleBtn.style.alignItems = 'center';
+                toggleBtn.style.justifyContent = 'center';
+                toggleBtn.style.color = '#555';
+                return;
+            }
+
+            titleEl.style.display = 'block';
+            historyBtn.style.display = 'block';
+            emailConfigBtn.style.display = 'block';
+            configBtn.style.display = 'block';
+            contentPanel.style.display = 'flex';
+            header.style.borderBottom = '1px solid #eee';
+            header.style.paddingBottom = '8px';
+            header.style.justifyContent = 'space-between';
+            toggleBtn.innerHTML = '&#8211;';
+            mainContainer.style.width = '260px';
+            mainContainer.style.padding = '12px';
+            mainContainer.style.justifyContent = 'initial';
+            mainContainer.style.alignItems = 'initial';
+            mainContainer.style.opacity = '1';
+            mainContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+            toggleBtn.style.fontSize = '16px';
+            toggleBtn.style.width = 'auto';
+            toggleBtn.style.height = 'auto';
             toggleBtn.style.display = 'flex';
             toggleBtn.style.alignItems = 'center';
             toggleBtn.style.justifyContent = 'center';
+            toggleBtn.style.color = '#999';
         };
         applyCollapse(isCollapsed);
-        toggleBtn.onclick = () => { isCollapsed = !isCollapsed; applyCollapse(isCollapsed); };
+        toggleBtn.onclick = () => {
+            if (isAnimating) {
+                return;
+            }
+
+            isAnimating = true;
+            if (panelAnimation) {
+                panelAnimation.cancel();
+                panelAnimation = null;
+            }
+
+            if (isCollapsed) {
+                applyCollapse(false);
+                panelAnimation = mainContainer.animate(
+                    [
+                        { transform: 'scale(0.12)', opacity: 0.4 },
+                        { transform: 'scale(1)', opacity: 1 }
+                    ],
+                    {
+                        duration: 220,
+                        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                        fill: 'both'
+                    }
+                );
+                panelAnimation.onfinish = () => {
+                    mainContainer.style.transform = 'scale(1)';
+                    mainContainer.style.opacity = '1';
+                    panelAnimation = null;
+                    isCollapsed = false;
+                    isAnimating = false;
+                };
+                panelAnimation.oncancel = () => {
+                    panelAnimation = null;
+                    isAnimating = false;
+                };
+                return;
+            }
+
+            panelAnimation = mainContainer.animate(
+                [
+                    { transform: 'scale(1)', opacity: 1 },
+                    { transform: 'scale(0.12)', opacity: 0.4 }
+                ],
+                {
+                    duration: 180,
+                    easing: 'ease-in',
+                    fill: 'both'
+                }
+            );
+            panelAnimation.onfinish = () => {
+                const finishedAnimation = panelAnimation;
+                applyCollapse(true);
+                if (finishedAnimation) {
+                    finishedAnimation.oncancel = null;
+                    finishedAnimation.cancel();
+                }
+                mainContainer.style.transform = 'scale(1)';
+                mainContainer.style.opacity = '0.98';
+                panelAnimation = null;
+                isCollapsed = true;
+                isAnimating = false;
+            };
+            panelAnimation.oncancel = () => {
+                panelAnimation = null;
+                isAnimating = false;
+            };
+        };
         document.body.appendChild(mainContainer);
     }
 

@@ -8,13 +8,34 @@
 
 - **`ClientScript/`**: 油猴脚本目录。包含核心 UI 和页面操纵逻辑。详见 [组件说明](ClientScript/README.md)。
 - **`MailProxy/`**: 本地 Node.js 中转服务端。利用 IMAP 协议安全、快速地提取验证码并提供接口。
+- **`api/`**: Vercel Serverless Functions 入口，用于一键部署线上接码接口。
 
 ---
 
 ## 🛠️ 快速上手
 
-### 1. 部署后端 (MailProxy)
-此部分负责监听您的邮箱并抓取验证码。
+### 1. 部署后端 (MailProxy / Vercel)
+此部分负责连接您的邮箱并抓取验证码。
+
+#### 方案 A：Vercel 一键部署（推荐）
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/iisyw/UniversalRegKit)
+
+部署时请在 Vercel 中配置以下环境变量：
+
+- `IMAP_HOST`: 邮箱 IMAP 服务器地址（如 `imap.gmail.com`）。
+- `IMAP_PORT`: 邮箱 IMAP 端口，通常为 `993`。
+- `IMAP_USER`: 邮箱账号。
+- `IMAP_PASS`: 邮箱密码或应用专用密码。
+
+部署完成后，接口地址为：
+
+- `https://你的域名/fetch-code?email=xxx`
+
+将这个地址填入油猴脚本的 `Custom API` 配置即可。
+
+#### 方案 B：本地运行 MailProxy
+适合继续在本机使用本地接口。
 
 1. 进入目录：`cd MailProxy`
 2. 安装依赖：`npm install`
@@ -41,8 +62,9 @@
 
 ## ⚙️ 配置说明
 
-### MailProxy (.env)
+### MailProxy / Vercel
 - `IMAP_HOST`: 邮箱 IMAP 服务器地址（如 `imap.gmail.com`）。
+- `IMAP_PORT`: IMAP 端口，通常为 `993`。
 - `IMAP_USER`: 邮箱账号。
 - `IMAP_PASS`: 邮箱密码（或应用授权码）。
 - `PORT`: 本地服务监听端口（默认 3000）。

@@ -27,7 +27,7 @@
 ### 2. 接码配置 (📧)
 - **服务商选择**：
     - `tempmail.plus`：在线临时邮箱，需配置前缀（登录名）。
-    - `Custom API`：连接您的本地 `MailProxy` 服务（默认地址 `http://localhost:3000/fetch-code`）。
+    - `Custom API`：连接您的 `MailProxy` 服务，可填写本地地址 `http://localhost:3000/fetch-code`，也可填写 Vercel 部署后的 `https://你的域名/fetch-code`。
 
 ---
 

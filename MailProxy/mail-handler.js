@@ -16,7 +16,8 @@ async function getLatestVerificationCode(targetEmail) {
 
     try {
         await client.connect();
-        let lock = await client.getMailboxLock('INBOX');
+        let result = null;
+        const lock = await client.getMailboxLock('INBOX');
         try {
             // 搜索最近的邮件 (按时间倒序)
             // 如果提供了 targetEmail，可以过滤收件人，但通常 catch-all 转发后收件人会变
@@ -35,17 +36,22 @@ async function getLatestVerificationCode(targetEmail) {
                 const parsed = await simpleParser(lastMessage.source);
                 const text = parsed.text || '';
                 const codeMatch = text.match(/\d{6}/);
-                if (codeMatch) return { code: codeMatch[0], date: lastMessage.internalDate };
+                if (codeMatch) {
+                    result = { code: codeMatch[0], date: lastMessage.internalDate };
+                }
             }
         } finally {
             lock.release();
         }
-        await client.logout();
+        return result;
     } catch (err) {
         console.error('IMAP Error:', err);
         throw err;
+    } finally {
+        if (client.usable) {
+            await client.logout();
+        }
     }
-    return null;
 }
 
 module.exports = { getLatestVerificationCode };

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/fetch-code",
+      "destination": "/api/fetch-code"
+    }
+  ]
+}

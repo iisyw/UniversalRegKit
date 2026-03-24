@@ -126,24 +126,22 @@
                 const result = await provider();
                 
                 if (result && result.text) {
-                    // 时间校验：邮件时间必须晚于邮箱刷新时间
-                    if (state.lastEmailTime && result.date < state.lastEmailTime) {
-                         console.log(`[接码] 检测到旧邮件 (邮件时间: ${new Date(result.date).toLocaleTimeString()}, 刷新时间: ${new Date(state.lastEmailTime).toLocaleTimeString()}), 继续等待...`);
+                    // 只接受比上一次已处理邮件更新的邮件
+                    if (state.lastEmailTime && result.date <= state.lastEmailTime) {
+                         console.log(`[接码] 检测到旧邮件 (邮件时间: ${new Date(result.date).toLocaleTimeString()}, 上次邮件时间: ${new Date(state.lastEmailTime).toLocaleTimeString()}), 继续等待...`);
                     } else {
                         const codeMatch = result.text.match(/\d{6}/); 
                         if (codeMatch) {
                             state.lastCode = codeMatch[0];
+                            state.lastEmailTime = result.date;
                             updateUI();
                             saveAll();
-                            
-                            // 改为自动复制
-                            navigator.clipboard.writeText(state.lastCode).then(() => {
-                                btn.textContent = '📋 已复制';
-                                setTimeout(() => {
-                                    btn.textContent = oldText;
-                                    btn.disabled = false;
-                                }, 3000);
-                            });
+
+                            btn.textContent = '✅ 已获取';
+                            setTimeout(() => {
+                                btn.textContent = oldText;
+                                btn.disabled = false;
+                            }, 2000);
                             return;
                         }
                     }
@@ -170,7 +168,6 @@
         state.password = generators.password();
         state.nickname = generators.nickname();
         state.lastCode = '';
-        state.lastEmailTime = Date.now(); // 记录刷新时间
         saveAll();
         updateUI();
         if (historyPanel && historyPanel.style.display === 'block') renderHistory();
@@ -178,7 +175,6 @@
 
     function refreshSingle(id) {
         state[id] = generators[id]();
-        if (id === 'email') state.lastEmailTime = Date.now(); // 记录刷新时间
         saveAll();
         updateUI();
     }
@@ -223,6 +219,20 @@
             btn.textContent = '✅';
             setTimeout(() => btn.textContent = old, 1000);
         });
+    }
+
+    function clearMailState(btn) {
+        state.lastCode = '';
+        state.lastEmailTime = 0;
+        saveAll();
+        updateUI();
+
+        if (!btn) return;
+        const old = btn.textContent;
+        btn.textContent = '🧹';
+        setTimeout(() => {
+            btn.textContent = old;
+        }, 800);
     }
 
     // UI 构建
@@ -425,10 +435,10 @@
                 const copyBtn = document.createElement('button');
                 copyBtn.textContent = '📋'; copyBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:13px;padding:2px;';
                 copyBtn.onclick = () => copyToClipboard(state[id], copyBtn);
-                const fillBtn = document.createElement('button');
-                fillBtn.textContent = '➡️'; fillBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:13px;padding:2px;';
-                fillBtn.onclick = () => simulateInput(state[id], 'text');
-                row.append(valSpan, fetchBtn, copyBtn, fillBtn);
+                const clearBtn = document.createElement('button');
+                clearBtn.textContent = '🗑️'; clearBtn.title = '清除验证码与邮件时间'; clearBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:13px;padding:2px;';
+                clearBtn.onclick = () => clearMailState(clearBtn);
+                row.append(valSpan, fetchBtn, copyBtn, clearBtn);
             } else {
                 const randBtn = document.createElement('button'); randBtn.textContent = '🎲'; randBtn.style.cssText = 'border:none;background:none;cursor:pointer;font-size:13px;padding:2px;';
                 randBtn.onclick = () => refreshSingle(id);
